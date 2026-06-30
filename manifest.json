@@ -1,0 +1,35 @@
+{
+  "manifest_version": 3,
+  "name": "Pulse Price Scanner",
+  "version": "0.1.0",
+  "description": "Scans eBay, Vinted & Facebook Marketplace for Pokémon cards and shows live PokePulse market value inline.",
+  "permissions": ["storage", "contextMenus", "scripting", "activeTab"],
+  "host_permissions": [
+    "*://*.ebay.co.uk/*",
+    "*://*.ebay.com/*",
+    "*://*.vinted.co.uk/*",
+    "*://*.vinted.com/*",
+    "*://*.facebook.com/*",
+    "https://instore.pulsecollective.co.uk/*"
+  ],
+  "background": { "service_worker": "background.js" },
+  "action": {
+    "default_title": "Pulse Price Scanner",
+    "default_popup": "popup.html"
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "*://*.ebay.co.uk/*",
+        "*://*.ebay.com/*",
+        "*://*.vinted.co.uk/*",
+        "*://*.vinted.com/*",
+        "*://*.facebook.com/*"
+      ],
+      "js": ["content.js"],
+      "css": ["badge.css"],
+      "run_at": "document_idle",
+      "all_frames": false
+    }
+  ]
+}

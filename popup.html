@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Pulse Price Scanner</title>
+  <style>
+    :root { color-scheme: light dark; }
+    body {
+      width: 290px; margin: 0; padding: 14px;
+      font: 13px/1.45 system-ui, -apple-system, Segoe UI, sans-serif;
+      background: #14171d; color: #e8eaed;
+    }
+    h1 { font-size: 14px; margin: 0 0 2px; display: flex; align-items: center; gap: 6px; }
+    h1 .dot { width: 9px; height: 9px; border-radius: 50%; background: #2ea4ff; }
+    p.sub { margin: 0 0 12px; opacity: .55; font-size: 11px; }
+    label { display: block; font-size: 11px; opacity: .7; margin: 10px 0 4px; text-transform: uppercase; letter-spacing: .03em; }
+    input[type=text] {
+      width: 100%; box-sizing: border-box; padding: 7px 9px; border-radius: 8px;
+      border: 1px solid #2a2f3a; background: #1b1f27; color: #e8eaed; font-size: 13px;
+    }
+    .row { display: flex; align-items: center; justify-content: space-between; padding: 6px 0; }
+    .row span { font-size: 13px; }
+    .switch { position: relative; width: 38px; height: 22px; }
+    .switch input { opacity: 0; width: 0; height: 0; }
+    .slider { position: absolute; inset: 0; background: #3a404d; border-radius: 999px; transition: .15s; cursor: pointer; }
+    .slider::before { content: ""; position: absolute; width: 16px; height: 16px; left: 3px; top: 3px; background: #fff; border-radius: 50%; transition: .15s; }
+    input:checked + .slider { background: #2ea4ff; }
+    input:checked + .slider::before { transform: translateX(16px); }
+    .sites { border-top: 1px solid #232833; border-bottom: 1px solid #232833; margin: 8px 0; }
+    button {
+      width: 100%; margin-top: 10px; padding: 9px; border: 0; border-radius: 8px;
+      background: #2ea4ff; color: #06243d; font-weight: 700; font-size: 13px; cursor: pointer;
+    }
+    button.ghost { background: #232833; color: #cbd2dd; font-weight: 600; margin-top: 6px; }
+    .usage { margin-top: 12px; font-size: 11px; opacity: .65; min-height: 14px; }
+    .status { font-size: 11px; margin-top: 6px; min-height: 14px; color: #7cd992; }
+  </style>
+</head>
+<body>
+  <h1><span class="dot"></span> Pulse Price Scanner</h1>
+  <p class="sub">Live PokePulse market value, inline on marketplace listings.</p>
+
+  <div class="row">
+    <span>Enabled</span>
+    <label class="switch"><input type="checkbox" id="enabled" /><span class="slider"></span></label>
+  </div>
+
+  <div class="sites">
+    <div class="row"><span>eBay</span><label class="switch"><input type="checkbox" data-site="ebay" /><span class="slider"></span></label></div>
+    <div class="row"><span>Vinted</span><label class="switch"><input type="checkbox" data-site="vinted" /><span class="slider"></span></label></div>
+    <div class="row"><span>Facebook Marketplace</span><label class="switch"><input type="checkbox" data-site="facebook" /><span class="slider"></span></label></div>
+  </div>
+
+  <button id="save">Save &amp; rescan tab</button>
+  <button id="clearCache" class="ghost">Clear price cache</button>
+
+  <div class="status" id="status"></div>
+  <div class="usage" id="usage"></div>
+
+  <script src="popup.js"></script>
+</body>
+</html>

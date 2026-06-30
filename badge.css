@@ -1,0 +1,131 @@
+/* ============================================================
+   Pulse Price Scanner — inline badge + hover popover
+   ============================================================ */
+
+/* ---- inline price badge: solid pill, colour = condition ---- */
+.pulse-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  margin: 4px 6px 0 0;
+  padding: 3px 10px;
+  border-radius: 999px;
+  font: 700 13px/1.3 system-ui, -apple-system, Segoe UI, sans-serif;
+  white-space: nowrap;
+  vertical-align: middle;
+  cursor: help;
+  border: 1px solid transparent;
+  position: relative;
+}
+
+/* priced — white text on a solid colour set per condition below */
+.pulse-ok {
+  color: #fff;
+  border-color: rgba(255, 255, 255, .4);
+  text-shadow: 0 1px 1px rgba(0, 0, 0, .2);
+  animation: pulse-pop .35s cubic-bezier(.2, .9, .3, 1.4);
+}
+.pulse-ok b {
+  font-size: 14.5px;
+  font-weight: 800;
+  letter-spacing: .2px;
+  font-variant-numeric: tabular-nums;
+}
+.pulse-ok .pulse-lbl {
+  font-weight: 700;
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: .04em;
+  padding: 1px 5px;
+  border-radius: 6px;
+  background: rgba(255, 255, 255, .22);
+}
+.pulse-ok:hover { filter: brightness(1.06); }
+
+/* condition → colour */
+.pulse-cond-nm { background: #2563eb; box-shadow: 0 2px 10px rgba(37, 99, 235, .45); }   /* blue  */
+.pulse-cond-lp { background: #16a34a; box-shadow: 0 2px 10px rgba(22, 163, 74, .45); }   /* green */
+.pulse-cond-mp { background: #d97706; box-shadow: 0 2px 10px rgba(217, 119, 6, .45); }   /* amber */
+.pulse-cond-hp { background: #dc2626; box-shadow: 0 2px 10px rgba(220, 38, 38, .45); }   /* red   */
+
+/* loading */
+.pulse-loading {
+  background: #eef1f5;
+  color: #5a6472;
+  border-color: #dce1e8;
+  font-weight: 600;
+  animation: pulse-fade 1.1s ease-in-out infinite;
+}
+
+/* no match / no price */
+.pulse-miss {
+  background: #f4f5f7;
+  color: #8a92a0;
+  border-color: #e4e7ec;
+  font-weight: 600;
+}
+
+@keyframes pulse-pop {
+  0%   { transform: scale(.6); opacity: 0; }
+  60%  { transform: scale(1.08); }
+  100% { transform: scale(1); opacity: 1; }
+}
+@keyframes pulse-fade { 0%, 100% { opacity: 1; } 50% { opacity: .5; } }
+
+/* ---- hover popover: clean dark card ---- */
+.pulse-pop {
+  position: fixed;
+  z-index: 2147483647;
+  width: 200px;
+  box-sizing: border-box;
+  padding: 12px 13px;
+  background: #14161c;
+  color: #eceef2;
+  border: 1px solid rgba(255, 255, 255, .08);
+  border-radius: 12px;
+  box-shadow: 0 12px 38px rgba(0, 0, 0, .45), 0 2px 6px rgba(0, 0, 0, .3);
+  font: 500 12px/1.45 system-ui, -apple-system, Segoe UI, sans-serif;
+  font-feature-settings: "tnum" 1;
+  animation: pulse-pop-in .12s ease;
+}
+.pulse-pop-name b {
+  display: block;
+  font-size: 13.5px; font-weight: 700; letter-spacing: -.01em;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.pulse-pop-name span {
+  display: block; margin-top: 1px;
+  opacity: .5; font-weight: 500; font-size: 11px;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.pulse-pop-sec {
+  text-transform: uppercase; letter-spacing: .06em;
+  font-size: 9.5px; font-weight: 600; opacity: .4;
+  margin: 10px 0 4px; padding-top: 9px;
+  border-top: 1px solid rgba(255, 255, 255, .07);
+}
+.pulse-pop-row {
+  display: flex; justify-content: space-between; align-items: center;
+  gap: 12px; padding: 3px 6px; margin: 0 -6px; border-radius: 6px;
+}
+.pulse-pop-row > span { opacity: .6; font-weight: 600; }
+.pulse-pop-row > b { font-weight: 700; font-variant-numeric: tabular-nums; }
+.pulse-pop-active { background: rgba(46, 164, 255, .14); }
+.pulse-pop-active > span { opacity: .95; color: #7cc4ff; }
+.pulse-pop-g > b { color: #8ad0ff; }
+
+/* condition-coloured rows in the popover, to match the pill scheme */
+.pulse-pop-row.pulse-c-nm > span { color: #7ca8ff; opacity: .95; }
+.pulse-pop-row.pulse-c-lp > span { color: #5fce8a; opacity: .95; }
+.pulse-pop-row.pulse-c-mp > span { color: #f0b357; opacity: .95; }
+.pulse-pop-row.pulse-c-hp > span { color: #f08a8a; opacity: .95; }
+
+@keyframes pulse-pop-in {
+  from { opacity: 0; transform: translateY(-3px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* Respect users who don't want motion. */
+@media (prefers-reduced-motion: reduce) {
+  .pulse-ok, .pulse-loading, .pulse-pop { animation: none; }
+}
