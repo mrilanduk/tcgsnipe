@@ -115,13 +115,30 @@
 
   // ---------- settings gate ----------
   let settings = null;
+  let signedIn = false;
   async function loadSettings() {
     settings = await chrome.runtime.sendMessage({ type: 'GET_SETTINGS' }).catch(() => null);
     return settings;
   }
+  async function refreshAuth() {
+    const a = await chrome.runtime.sendMessage({ type: 'GET_AUTH' }).catch(() => null);
+    signedIn = !!(a && a.signedIn);
+    return signedIn;
+  }
   function active() {
-    return settings && settings.enabled && settings.sites?.[siteKey] !== false
+    return signedIn && settings && settings.enabled && settings.sites?.[siteKey] !== false
       && (!adapter.enabled || adapter.enabled());
+  }
+
+  // One-time, non-blocking notice when the user isn't signed in.
+  function showLockToast() {
+    if (document.getElementById('pulse-locked-toast')) return;
+    const t = document.createElement('div');
+    t.id = 'pulse-locked-toast';
+    t.className = 'pulse-toast';
+    t.textContent = '🔒 Sign in to Pulse (click the extension icon) to see card prices';
+    document.body.appendChild(t);
+    setTimeout(() => t.remove(), 8000);
   }
 
   // ---------- badge ----------
@@ -147,12 +164,14 @@
       badge.addEventListener('mouseleave', hidePopoverSoon);
     } else {
       badge.classList.add('pulse-miss');
-      const labels = {
-        no_match: 'no match', no_price: 'no price', parse_failed: '—',
-        error: 'error', no_base_url: 'set URL',
-      };
-      badge.textContent = `Pulse: ${labels[result?.reason] || '—'}`;
-      if (result?.message) badge.title = result.message;
+      if (result?.reason === 'locked') {
+        badge.textContent = '🔒 Sign in to Pulse';
+        badge.title = 'Open the Pulse extension and enter your access code';
+      } else {
+        const labels = { no_match: 'no match', no_price: 'no price', parse_failed: '—', error: 'error' };
+        badge.textContent = `Pulse: ${labels[result?.reason] || '—'}`;
+        if (result?.message) badge.title = result.message;
+      }
     }
   }
 
@@ -231,7 +250,13 @@
 
     log('price →', JSON.stringify(item.title).slice(0, 80));
     chrome.runtime.sendMessage({ type: 'PRICE', title: item.title, conditionText: item.condition || '' })
-      .then((result) => { log('price ←', result?.ok ? result.headline?.text + ' ' + result.headline?.label : 'miss:' + result?.reason, '·', item.title.slice(0, 50)); paint(badge, result); })
+      .then((result) => {
+        // Locked mid-session (code revoked, or never signed in) — stop scanning
+        // and nudge the user once, rather than painting "locked" on every card.
+        if (result?.reason === 'locked') { signedIn = false; observer.disconnect(); mo.disconnect(); showLockToast(); }
+        log('price ←', result?.ok ? result.headline?.text + ' ' + result.headline?.label : 'miss:' + result?.reason, '·', item.title.slice(0, 50));
+        paint(badge, result);
+      })
       .catch((err) => { log('price ✕', err); badge.classList.remove('pulse-loading'); badge.classList.add('pulse-miss'); badge.textContent = 'Pulse: error'; badge.title = String(err); });
   }
 
@@ -267,7 +292,12 @@
 
   chrome.runtime.onMessage.addListener((msg, _s, send) => {
     if (msg?.type === 'RESCAN') {
-      loadSettings().then(() => { scan(true); send?.({ ok: true }); });
+      (async () => {
+        await loadSettings();
+        await refreshAuth();
+        if (signedIn) { mo.observe(document.body, { childList: true, subtree: true }); scan(true); }
+        send?.({ ok: true });
+      })();
       return true;
     }
     if (msg?.type === 'SETTINGS_CHANGED') {
@@ -278,6 +308,8 @@
 
   (async () => {
     await loadSettings();
+    await refreshAuth();
+    if (!signedIn) { showLockToast(); return; } // locked → no scanning until signed in
     scan(false);
     // SPA listings (Vinted/FB) often render after document_idle — re-scan a few
     // times as insurance on top of the MutationObserver.

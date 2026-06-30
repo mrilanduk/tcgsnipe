@@ -16,8 +16,9 @@
     p.sub { margin: 0 0 12px; opacity: .55; font-size: 11px; }
     label { display: block; font-size: 11px; opacity: .7; margin: 10px 0 4px; text-transform: uppercase; letter-spacing: .03em; }
     input[type=text] {
-      width: 100%; box-sizing: border-box; padding: 7px 9px; border-radius: 8px;
-      border: 1px solid #2a2f3a; background: #1b1f27; color: #e8eaed; font-size: 13px;
+      width: 100%; box-sizing: border-box; padding: 8px 10px; border-radius: 8px;
+      border: 1px solid #2a2f3a; background: #1b1f27; color: #e8eaed; font-size: 14px;
+      letter-spacing: .04em; text-transform: uppercase;
     }
     .row { display: flex; align-items: center; justify-content: space-between; padding: 6px 0; }
     .row span { font-size: 13px; }
@@ -33,30 +34,51 @@
       background: #2ea4ff; color: #06243d; font-weight: 700; font-size: 13px; cursor: pointer;
     }
     button.ghost { background: #232833; color: #cbd2dd; font-weight: 600; margin-top: 6px; }
+    button.small { width: auto; margin: 0; padding: 5px 10px; font-size: 12px; }
     .usage { margin-top: 12px; font-size: 11px; opacity: .65; min-height: 14px; }
     .status { font-size: 11px; margin-top: 6px; min-height: 14px; color: #7cd992; }
+    .who { display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px; }
+    .who .badge { font-size: 11px; background: rgba(46,164,255,.16); color: #7cc4ff; padding: 2px 8px; border-radius: 999px; font-weight: 700; }
+    [hidden] { display: none !important; }
   </style>
 </head>
 <body>
   <h1><span class="dot"></span> Pulse Price Scanner</h1>
   <p class="sub">Live PokePulse market value, inline on marketplace listings.</p>
 
-  <div class="row">
-    <span>Enabled</span>
-    <label class="switch"><input type="checkbox" id="enabled" /><span class="slider"></span></label>
-  </div>
+  <!-- Signed-out: enter access code -->
+  <section id="signin" hidden>
+    <label>Access code</label>
+    <input type="text" id="code" placeholder="PC-XXXX-XXXX" autocomplete="off" spellcheck="false" />
+    <button id="unlock">Unlock</button>
+    <div class="status" id="authError" style="color:#ff8a8a"></div>
+    <p class="sub" style="margin-top:10px">Don’t have a code? Ask Pulse Collective for access.</p>
+  </section>
 
-  <div class="sites">
-    <div class="row"><span>eBay</span><label class="switch"><input type="checkbox" data-site="ebay" /><span class="slider"></span></label></div>
-    <div class="row"><span>Vinted</span><label class="switch"><input type="checkbox" data-site="vinted" /><span class="slider"></span></label></div>
-    <div class="row"><span>Facebook Marketplace</span><label class="switch"><input type="checkbox" data-site="facebook" /><span class="slider"></span></label></div>
-  </div>
+  <!-- Signed-in: controls -->
+  <section id="app" hidden>
+    <div class="who">
+      <span class="badge" id="who">Signed in</span>
+      <button id="signout" class="ghost small">Sign out</button>
+    </div>
 
-  <button id="save">Save &amp; rescan tab</button>
-  <button id="clearCache" class="ghost">Clear price cache</button>
+    <div class="row">
+      <span>Enabled</span>
+      <label class="switch"><input type="checkbox" id="enabled" /><span class="slider"></span></label>
+    </div>
 
-  <div class="status" id="status"></div>
-  <div class="usage" id="usage"></div>
+    <div class="sites">
+      <div class="row"><span>eBay</span><label class="switch"><input type="checkbox" data-site="ebay" /><span class="slider"></span></label></div>
+      <div class="row"><span>Vinted</span><label class="switch"><input type="checkbox" data-site="vinted" /><span class="slider"></span></label></div>
+      <div class="row"><span>Facebook Marketplace</span><label class="switch"><input type="checkbox" data-site="facebook" /><span class="slider"></span></label></div>
+    </div>
+
+    <button id="save">Save &amp; rescan tab</button>
+    <button id="clearCache" class="ghost">Clear price cache</button>
+
+    <div class="status" id="status"></div>
+    <div class="usage" id="usage"></div>
+  </section>
 
   <script src="popup.js"></script>
 </body>

@@ -35,6 +35,16 @@ async function getSettings() {
   return { ...DEFAULTS, ...stored, sites: { ...DEFAULTS.sites, ...(stored.sites || {}) } };
 }
 
+// ---------- auth (access code) ----------
+// The validated code is stored locally and sent as X-Access-Code on every
+// pricing request. No code → the extension stays locked and prices nothing.
+async function getAuth() {
+  const { auth } = await chrome.storage.local.get('auth');
+  return auth || {};
+}
+async function setAuth(a) { await chrome.storage.local.set({ auth: a }); }
+async function clearAuth() { await chrome.storage.local.remove('auth'); }
+
 // ---------- title parsing ----------
 // Marketplace titles are free text ("Charizard ex 199/165 Pokemon 151 PSA 10").
 // Pull out a best-effort (name, num, grade); the server's fuzzy search does the
@@ -157,16 +167,17 @@ function schedule(fn) {
 const inflight = new Map(); // key -> Promise (dedupe identical concurrent queries)
 
 // ---------- API ----------
-async function apiGet(base, path) {
-  const res = await fetch(base + path, { headers: { Accept: 'application/json' } });
-  if (!res.ok) throw new Error(`${res.status} ${path}`);
+async function apiGet(base, path, headers) {
+  const res = await fetch(base + path, { headers: { Accept: 'application/json', ...(headers || {}) } });
+  if (!res.ok) { const e = new Error(`${res.status} ${path}`); e.status = res.status; throw e; }
   return res.json();
 }
 
 // Fetch the condition-agnostic card data (cacheable): the matched card plus its
 // raw NM/LP/MP/HP and graded prices. No headline is chosen here.
-async function fetchCardData(base, parsed) {
-  const search = await apiGet(base, `/api/search?name=${encodeURIComponent(parsed.name)}${parsed.num ? `&num=${encodeURIComponent(parsed.num)}` : ''}`);
+async function fetchCardData(base, parsed, accessCode) {
+  const h = accessCode ? { 'X-Access-Code': accessCode } : null;
+  const search = await apiGet(base, `/api/search?name=${encodeURIComponent(parsed.name)}${parsed.num ? `&num=${encodeURIComponent(parsed.num)}` : ''}`, h);
   const results = Array.isArray(search.results) ? search.results : [];
   if (!results.length) return { ok: false, reason: 'no_match' };
 
@@ -184,7 +195,7 @@ async function fetchCardData(base, parsed) {
     imageUrl: best.image_url || null,
   };
 
-  const lookup = await apiGet(base, `/api/lookup?code=${encodeURIComponent(code)}`);
+  const lookup = await apiGet(base, `/api/lookup?code=${encodeURIComponent(code)}`, h);
   const variants = Array.isArray(lookup.variants) ? lookup.variants : [];
   if (!variants.length) return { ok: false, reason: 'no_price', match };
 
@@ -248,6 +259,10 @@ function selectHeadline(card, parsed) {
 async function priceCard(title, conditionText) {
   const base = SERVICE_URL;
 
+  // Gate: no validated access code → locked, price nothing.
+  const auth = await getAuth();
+  if (!auth.code) return { ok: false, reason: 'locked' };
+
   const parsed = parseTitle(title);
   if (!parsed.name || parsed.name.length < 2) return { ok: false, reason: 'parse_failed', query: parsed };
 
@@ -269,10 +284,12 @@ async function priceCard(title, conditionText) {
     } else {
       const job = schedule(async () => {
         try {
-          const data = await fetchCardData(base, parsed);
+          const data = await fetchCardData(base, parsed, auth.code);
           await cacheSet(key, data);
           return data;
         } catch (err) {
+          // Code revoked/expired server-side → drop it and report locked.
+          if (err.status === 401) { await clearAuth(); return { ok: false, reason: 'locked' }; }
           return { ok: false, reason: 'error', message: String(err.message || err) };
         } finally {
           inflight.delete(key);
@@ -297,6 +314,41 @@ chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
   }
   if (msg?.type === 'GET_SETTINGS') {
     getSettings().then(sendResponse);
+    return true;
+  }
+  if (msg?.type === 'GET_AUTH') {
+    getAuth().then(a => sendResponse({ signedIn: !!a.code, label: a.label || null }));
+    return true;
+  }
+  if (msg?.type === 'SIGN_IN') {
+    (async () => {
+      const code = String(msg.code || '').trim().toUpperCase();
+      if (!code) return sendResponse({ ok: false, error: 'Enter your access code.' });
+      try {
+        // Code goes in the BODY (not the X-Access-Code header) so the gate
+        // middleware doesn't reject it before /api/access/validate runs.
+        const res = await fetch(SERVICE_URL + '/api/access/validate', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+          body: JSON.stringify({ code }),
+        });
+        if (res.ok) {
+          const data = await res.json();
+          await setAuth({ code, label: data.label || null });
+          sendResponse({ ok: true, label: data.label || null });
+        } else if (res.status === 401) {
+          sendResponse({ ok: false, error: 'Invalid or revoked code.' });
+        } else {
+          sendResponse({ ok: false, error: `Server error (${res.status}).` });
+        }
+      } catch {
+        sendResponse({ ok: false, error: 'Could not reach the service.' });
+      }
+    })();
+    return true;
+  }
+  if (msg?.type === 'SIGN_OUT') {
+    clearAuth().then(() => sendResponse({ ok: true }));
     return true;
   }
   if (msg?.type === 'SET_SETTINGS') {
@@ -385,8 +437,9 @@ function showOverlay(result) {
   } else {
     const reasons = {
       no_match: 'No matching card found', no_price: 'Card found, no price data',
-      parse_failed: 'Could not read a card from the text', no_base_url: 'Set the service URL in the extension popup',
-      error: 'Lookup failed', no_base: 'No service URL configured',
+      parse_failed: 'Could not read a card from the text',
+      locked: 'Sign in: open the Pulse extension and enter your access code',
+      error: 'Lookup failed',
     };
     html += `<div style="opacity:.8">${reasons[result?.reason] || 'No result'}</div>`;
     if (result?.message) html += `<div style="opacity:.5;margin-top:4px;font-size:11px">${result.message}</div>`;

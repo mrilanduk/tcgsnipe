@@ -125,7 +125,23 @@
   to   { opacity: 1; transform: translateY(0); }
 }
 
+/* ---- "sign in" toast (shown when locked) ---- */
+.pulse-toast {
+  position: fixed;
+  bottom: 20px; left: 50%;
+  transform: translateX(-50%);
+  z-index: 2147483647;
+  padding: 11px 16px;
+  background: #14161c;
+  color: #eceef2;
+  border: 1px solid rgba(255, 255, 255, .1);
+  border-radius: 999px;
+  box-shadow: 0 10px 34px rgba(0, 0, 0, .5);
+  font: 600 13px/1 system-ui, -apple-system, Segoe UI, sans-serif;
+  animation: pulse-pop-in .18s ease;
+}
+
 /* Respect users who don't want motion. */
 @media (prefers-reduced-motion: reduce) {
-  .pulse-ok, .pulse-loading, .pulse-pop { animation: none; }
+  .pulse-ok, .pulse-loading, .pulse-pop, .pulse-toast { animation: none; }
 }
